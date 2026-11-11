@@ -1,98 +1,176 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  FlatList,
+  Keyboard,
+  StyleSheet
+} from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+type Task = {
+  id: string;
+  title: string;
+  completed: boolean;
+};
 
 export default function HomeScreen() {
+  const [task, setTask] = useState('');
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+
+  const addTasks = () => {
+    if (task.trim() === '') return;
+
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: task,
+      completed: false,
+    };
+
+    setTasks([...tasks, newTask]);
+    setTask('');
+    Keyboard.dismiss();
+  };
+
+  const toggleTask = (id: string) => {
+    setTasks(
+      tasks.map((t) =>
+        t.id === id ? { ...t, completed: !t.completed } : t
+      )
+    );
+  };
+
+
+  const deleteTask = (id: string) => {
+    setTasks(tasks.filter((t) => t.id !== id));
+  };
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <View style={styles.container}>
+      <Text style={styles.headerTitle}>My Todo List</Text>
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Add a new task..."
+          placeholderTextColor="#888"
+          value={task}
+          onChangeText={setTask}
+        />
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+        <Pressable style={styles.addButton} onPress={addTasks}>
+          <Text style={styles.addButtonText}>Add</Text>
+        </Pressable>
+      </View>
+
+
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View style={styles.taskItem}>
+
+            <Pressable
+              style={{ flex: 1 }}
+              onPress={() => toggleTask(item.id)}
+            >
+              <Text
+                style={[
+                  styles.taskText,
+                  item.completed && styles.completedTaskText
+                ]}
+              >
+                {item.title}
+              </Text>
+            </Pressable>
+
+
+            <Pressable
+              style={styles.deleteButton}
+              onPress={() => deleteTask(item.id)}
+            >
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </Pressable>
+          </View>
+        )}
+      />
+    </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    padding: 20,
+    marginTop: 40,
+    maxWidth: 500,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  inputContainer: {
     flexDirection: 'row',
+    marginBottom: 20,
   },
-  safeArea: {
+  input: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 12,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: '#fff',
+    fontSize: 16,
   },
-  heroSection: {
-    alignItems: 'center',
+  addButton: {
+    backgroundColor: '#007AFF',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    borderRadius: 8,
   },
-  title: {
-    textAlign: 'center',
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
-  code: {
-    textTransform: 'uppercase',
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  taskText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  completedTaskText: {
+    textDecorationLine: 'line-through',
+    color: '#888',
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
